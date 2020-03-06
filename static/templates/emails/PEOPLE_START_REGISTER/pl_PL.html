@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-GB">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+</head>
+<body style="font-family: 'Ubuntu', sans-serif; font-size: 100%; margin: 3%;">
+<header>
+    <div class="header-image" style="
+    width: 100%;
+    height: 106px;
+    background-color: #00AEAB;
+    background-image: url(https://www.identitybank.eu/images/homeafbeeldingen/logo2new.png);
+    background-repeat: no-repeat;
+">&nbsp;
+    </div>
+
+    <hr style="color: #00AEAB; opacity: 50%;">
+    <div style="text-align:left; line-height: 25px; color:grey; padding-top: 20px; padding-bottom: 20px;">
+        Witaj {{firstname}} {{lastname}},<br>
+        <br>
+        Tutaj w {{business}} bardzo poważnie traktujemy ochronę Państwa danych osobowych. Naszym celem jest być
+        całkowicie
+        transparentnym i odpowiedzialnym, jeśli chodzi o sposób, w jaki wykorzystujemy Twoje dane. Z pomocą Identity
+        Banku możesz
+        po prostu zalogować się i zobaczyc, co wiemy o Tobie oraz kiedy i dlaczego wykorzystaliśmy Twoje dane. Identity
+        Bank bezpiecznie przechowuje dane osobowe.
+        Twoje dane są tylko Twoje i tylko ty masz nad nimi pełną kontrolę. To przecież Twoje dane oraz te, które należą
+        do Ciebie.<br>
+        <br>
+        Poniższy link umożliwi Ci dostęp do Twojego osobistego konta:<br>
+        <div style="text-align:center; line-height: 30px; color:grey; padding-top: 10px; padding-bottom: 20px;">
+            <a
+                    href="{{invitation_link}}"
+                    style="text-transform: uppercase ;background:#00AEAB;color:white;font-family:Helvetica;font-size:13px;font-weight:normal;line-height:120%;Margin:0;text-decoration:none; margin-top: 50px; line-height: 60px; padding: 0 20px; display: inline-block;"
+                    target="_blank">Zabierz mnie do moich danych!</a>
+            <br>
+        </div>
+        <br>
+        Będziesz w stanie chronić dostęp do swoich danych za pomocą hasła, które znasz tylko Ty. Jeśli korzystasz już z
+        Identity Banku
+        możesz zalogować się i zobaczyć {{business}} wraz z innymi firmami, które potrzebują Twoich danych, w jednym
+        łatwym w użyciu
+        portalu do ich przejrzenia.<br>
+        <br>
+        Nie musisz wierzyć nam na słowo, sprawdź jak chronimy Twoją tożsamość dla siebie!<br>
+        <br>
+        Pozdrowienia,<br>
+        <br>
+        {{business}}<br>
+        We współpracy z Identity Bank<br>
+        'Należysz do siebie'
+    </div>
+
+</header>
+
+<hr style="color: #00AEAB; opacity: 50%;">
+<footer style="padding-top: 0px;">
+    <div class="idb-details-large" style="
+        width: 100%;
+        text-align: center;
+        padding: 0 10px 5px 10px;">
+        {{emailTemplateFooter}}
+    </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-GB">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+</head>
+<body style="font-family: 'Ubuntu', sans-serif; font-size: 100%; margin: 3%;">
+<header>
+    <div class="header-image" style="
+    width: 100%;
+    height: 106px;
+    background-color: #00AEAB;
+    background-image: url(https://www.identitybank.eu/images/homeafbeeldingen/logo2new.png);
+    background-repeat: no-repeat;
+">&nbsp;
+    </div>
+</header>
+
+<hr style="color: #00AEAB; opacity: 50%;">
+<div style="text-align:left; line-height: 150%; color:grey; padding-top: 10px; padding-bottom: 30px;">
+    <p>Hello {{person}},</p>
+
+    <p>At {{business}} we take your personal data protection very seriously. Our goal is to be totally transparent and accountable to you when it comes to how we use your data. This is why we have teamed up with Identity Bank to securely store your data so that only you have full control over it. It is after all, your data and it belongs to you.</p>
+
+    <p>With the help of Identity Bank you can simply log in and see what we know about you, and, when and why we use your data. You can also update your personal data whenever you wish and our records will be automatically updated when you do this.</p>
+
+    <p>The following link will give you access to your personal account:</p>
+
+    <div style="text-align:center; color:grey; padding-top: 10px; padding-bottom: 10px;">
+        <a
+                href="{{invitation_link}}"
+                style="text-transform: uppercase ; background:#00AEAB; color:white; font-family:Helvetica; font-size:13px; font-weight:normal;  Margin:0; text-decoration:none; line-height: 40px; padding: 0 20px; display: inline-block;"
+                target="_blank">Take me to my data!</a>
+    </div>
+
+    <p>You will be able to protect access to your data with a password only you know. If you already use Identity Bank you can log in to your account and see {{business}} listed alongside other businesses that need your data in one easy to use overview.</p>
+
+    <p>Don’t take our word for it - checkout yourself how we help you protect your identity!</p>
+
+    <p>Kind regards,</p>
+
+    <p>{{business}}<br>
+        In cooperation with Identity Bank<br>
+        <i>You belong to you</i></p>
+</div>
+
+
+<hr style="color: #00AEAB; opacity: 50%;">
+<footer style="padding-top: 0px;">
+    <div class="idb-details-large" style="
+        width: 100%;
+        text-align: center;
+        padding: 0 10px 5px 10px;">
+        {{emailTemplateFooter}}
+    </div>
+</footer>
+</body>
+</html>

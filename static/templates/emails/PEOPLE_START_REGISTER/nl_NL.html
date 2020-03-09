@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-GB">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+</head>
+<body style="font-family: 'Ubuntu', sans-serif; font-size: 100%; margin: 3%;">
+<header>
+    <div class="header-image" style="
+    width: 100%;
+    height: 106px;
+    background-color: #00AEAB;
+    background-image: url(https://www.identitybank.eu/images/homeafbeeldingen/logo2new.png);
+    background-repeat: no-repeat;
+">&nbsp;
+    </div>
+</header>
+
+<hr style="color: #00AEAB; opacity: 50%;">
+<div style="text-align:left; line-height: 150%; color:grey; padding-top: 10px; padding-bottom: 30px;">
+    <p>Hallo {{person}},</p>
+
+    <p>Bij {{business}} nemen we de bescherming van uw persoonlijke gegevens serieus. Ons doel is om volledig transparant en verantwoording aan u af te leggen als het gaat om hoe we uw gegevens gebruiken. Daarom werken we samen met Identity Bank om uw gegevens veilig op te slaan, zodat alleen u er volledige controle over hebt. Het zijn tenslotte uw gegevens en behoort aan u toe.</p>
+
+    <p>Met behulp van Identity Bank kunt u eenvoudig inloggen en zien wat we van u weten, en wanneer en waarom we uw gegevens gebruiken. U kunt ook uw persoonlijke gegevens bijwerken wanneer u maar wilt en onze gegevens worden automatisch bijgewerkt wanneer u dit doet.</p>
+
+    <p>De volgende link geeft u toegang tot uw persoonlijke account:</p>
+
+    <div style="text-align:center; color:grey; padding-top: 10px; padding-bottom: 10px;">
+        <a
+                href="{{invitation_link}}"
+                style="text-transform: uppercase ; background:#00AEAB; color:white; font-family:Helvetica; font-size:13px; font-weight:normal;  Margin:0; text-decoration:none; line-height: 40px; padding: 0 20px; display: inline-block;"
+                target="_blank">Breng me naar mijn gegevens!</a>
+    </div>
+
+    <p>U kunt de toegang tot uw gegevens beschermen met een wachtwoord dat alleen u kent. Als u Identity Bank al gebruikt, kunt u zich aanmelden bij uw account en {{business}} zien naast andere bedrijven die uw gegevens nodig hebben in één duidelijk overzicht.</p>
+
+    <p>Vertrouw ons niet op ons woord - bekijk zelf hoe wij u helpen uw identiteit te beschermen!</p>
+
+    <p>Met vriendelijke groeten,</p>
+
+    <p>{{business}}<br>
+        In samenwerking met Identity Bank<br>
+        <i>You belong to you</i></p>
+</div>
+
+<hr style="color: #00AEAB; opacity: 50%;">
+<footer style="padding-top: 0px;">
+    <div class="idb-details-large" style="
+        width: 100%;
+        text-align: center;
+        padding: 0 10px 5px 10px;">
+        {{emailTemplateFooter}}
+    </div>
+</footer>
+</body>
+</html>

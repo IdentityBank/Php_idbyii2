@@ -431,12 +431,16 @@ class DataHTML
                 && !empty($data['display_name'])
                 && !empty($data['display_name'])
                 && !empty($displayName[0])
-                && !empty($displayName[1])
                 && $data['object_type'] === 'type'
-                && $data['display_name'] === $displayName[1]
-                && $metadata['display_name'] === $displayName[0]
+                && $data['display_name'] === !empty($displayName[1])? $displayName[1] : $displayName[0]
             ) {
-                return $data['uuid'];
+                if(!empty($displayName[1])) {
+                    if($metadata['display_name'] === $displayName[0]) {
+                        return $data['uuid'];
+                    }
+                } else {
+                    return $data['uuid'];
+                }
             } elseif ($data['object_type'] === 'set') {
                 if (self::getUuid($displayName, $data) !== false) {
                     return self::getUuid($displayName, $data);

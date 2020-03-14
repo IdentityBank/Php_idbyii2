@@ -43,6 +43,7 @@ class NotificationTopic extends Enum
 {
 
     const PAYMENT = 'payment';
+    const DELETE_ACCOUNT = 'deleteAccount';
 }
 
 ################################################################################

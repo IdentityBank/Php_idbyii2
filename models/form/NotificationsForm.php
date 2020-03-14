@@ -51,6 +51,7 @@ class NotificationsForm extends IdbModel
     public $body;
     public $type;
     public $status;
+    public $topic;
     public $url;
     public $action_name;
 
@@ -61,14 +62,8 @@ class NotificationsForm extends IdbModel
     {
         return
             [
-                [['title'], 'required'],
-                [['uid'], 'required'],
-                [['body'], 'required'],
-                [['type'], 'required'],
-                [['status'], 'required'],
-                [['url'], 'required'],
-                [['action_name'], 'required'],
-                [['expires_at'], 'safe']
+                [['title', 'uid', 'body', 'type', 'status', 'url', 'action_name'], 'required'],
+                [['expires_at', 'topic'], 'safe']
             ];
     }
 
@@ -99,6 +94,7 @@ class NotificationsForm extends IdbModel
         $model->uid = $modelBusinessNotification->uid;
         $model->type = $modelBusinessNotification->type;
         $model->status = $modelBusinessNotification->status;
+        $model->topic = $modelBusinessNotification->topic;
         $model->expires_at = $modelBusinessNotification->expires_at;
         $data = $modelBusinessNotification->data;
 
@@ -126,6 +122,7 @@ class NotificationsForm extends IdbModel
             [
                 'type' => $this->type,
                 'status' => $this->status,
+                'topic' => $this->topic?? '',
                 'expires_at' => $this->expires_at,
                 'uid' => $this->uid,
                 'data' => json_encode(

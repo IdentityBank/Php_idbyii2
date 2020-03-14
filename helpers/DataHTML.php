@@ -140,6 +140,7 @@ class DataHTML
             throw new NotFoundHttpException();
         }
 
+        $counter = 1;
         foreach ($metadata['PeopleAccessMap'] as $column_id => $column_uuid) {
             $number = self::getKeyForColumn($column_uuid, $metadata);
             if (is_numeric($number)) {
@@ -158,7 +159,7 @@ class DataHTML
                 }
 
                 $columns [] = [
-                    'header' => '<span id="col-name-' . $column_id . '">'
+                    'header' => '<span id="col-name-' . $counter . '">'
                         . self::getDisplayName($column_uuid, $metadata)
                         . '</span><br/> <input class="search" name="' . $column_uuid . '" value="' . $value
                         . '" type="text"/>',
@@ -170,6 +171,7 @@ class DataHTML
                         return '';
                     }
                 ];
+                $counter++;
             } else {
                 $columns = [];
             }

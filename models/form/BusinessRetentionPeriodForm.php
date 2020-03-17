@@ -81,15 +81,15 @@ class BusinessRetentionPeriodForm extends IdbModel
                 'compareAttribute'=>'minimum',
                 'operator' => '>=',
                 'type' => 'number',
-                'message' => Translate::_('idbyii2', 'Review cycle must be greater than minimum')
+                'message' => Translate::_('idbyii2', 'Review cycle must be greater or equal minimum')
             ],
             [
                 'reviewCycle',
                 'compare',
                 'compareAttribute'=>'maximum',
-                'operator' => '<',
+                'operator' => '<=',
                 'type' => 'number',
-                'message' => Translate::_('idbyii2', 'Review cycle must be less than maximum')
+                'message' => Translate::_('idbyii2', 'Review cycle must be less or equal maximum')
             ]
         ];
     }

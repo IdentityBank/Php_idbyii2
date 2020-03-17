@@ -525,6 +525,11 @@ class Import extends IdbImport
 
                 $clientModel = IdbBankClientBusiness::model($businessId);
                 foreach ($chunkedMap as $k => $chunk) {
+                    foreach ($chunk as &$type) {
+                        foreach ($type as &$typeValue) {
+                            $typeValue = trim($typeValue);
+                        }
+                    }
                     $response = $clientModel->putMultiple(array_values($chunk));
                     var_dump($response);
                     if ($response != 457) {

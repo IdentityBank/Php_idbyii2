@@ -241,11 +241,14 @@ class Payment
      */
     private function makePayment($value, $reference, BusinessOrganization &$organization, $data)
     {
+        $value = intval($value * 100);
+
         $state = $data;
         if (!empty($data['paymentState'])) {
             $state = json_decode($data['paymentState'], true);
             $state["storeDetails"] = true;
         }
+
         $params = [
             'amount' => [
                 'currency' => $this->currency,
@@ -257,8 +260,12 @@ class Payment
             'merchantAccount' => $this->merchant
         ];
 
-        $response = $this->service->payments($params);
-
+        try {
+            $response = $this->service->payments($params);
+        } catch (AdyenException $e) {
+            Yii::error('PAYMENT ERROR');
+            Yii::error($e->getMessage());
+        }
         if (!empty($response['additionalData'])) {
             if (
                 !empty($response['additionalData']['recurring.recurringDetailReference'])
@@ -495,6 +502,7 @@ class Payment
         }
 
         $params = $this->makePayment($value, $reference, $organization, $data);
+
         if (empty($params)) {
             return false;
         }
@@ -563,7 +571,7 @@ class Payment
         $package = $this->model->getPackage($signupModel->getDataChunk('package'));
 
         $params = $this->makePayment(
-            intval($package[0][5]) * 100,
+            $package[0][5],
             Invoice::getNextInvoiceNumber(),
             $organization,
             $data

@@ -252,7 +252,7 @@ class Payment
         $params = [
             'amount' => [
                 'currency' => $this->currency,
-                'value' => $value
+                'value' => $value !== 0? $value: 100
             ],
             'reference' => $reference,
             "shopperReference" => $organization->name,

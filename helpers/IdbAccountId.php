@@ -492,6 +492,8 @@ class IdbAccountId
                         case 'setAccountMetadata':
                         case 'deleteAccountMetadata':
                         case 'createAccountMetadata':
+                        case 'recreateAccountPseudonymisation':
+                        case 'updatePseudonymisationBase':
                         case 'createAccountCRBase':
                         case 'deleteAccountCRBase':
                         case 'recreateAccountCRBase':
@@ -511,6 +513,7 @@ class IdbAccountId
                         case 'getAccountSTbyUserIdBase':
                         case 'deleteAccountEventsBase':
                         case 'addAccountEventBase':
+                        case 'putPseudonymisationBase':
                         case 'createAccountEventsBase':
                         case 'deleteAccountEventBase':
                         case 'getAccountSTbyStatusBase':
@@ -542,6 +545,8 @@ class IdbAccountId
                         case 'findCountAllEventsToCache':
                         case 'deleteAccountEvent':
                         case 'updateDataTypes':
+                        case 'putPseudonymisation':
+                        case 'updatePseudonymisation':
                         case 'deleteAccount':
                         case 'createAccountCR':
                         case 'deleteAccountCR':

@@ -34,6 +34,7 @@ namespace idbyii2\helpers;
 # Use(s)                                                                       #
 ################################################################################
 
+use Codeception\Step\Meta;
 use DateInterval;
 use DateTime;
 use Exception;
@@ -86,7 +87,7 @@ class Event
                     $client->addAccountEvent(
                         'uid.' . $id[0] . '.uuid.' . $column['uuid'],
                         'AE',
-                        json_encode(['action' => 'delete']),
+                        json_encode(['action' => $data['onExpiry']]),
                         Localization::getDatabaseDateTime($maximumDate),
                         [
                             'retentionPeriod' => [
@@ -209,6 +210,57 @@ class Event
         }
 
         fclose($file);
+    }
+
+    /**
+     * @param $event
+     * @return bool
+     * @throws Exception
+     */
+    public static function pseudonymizationEvent($event)
+    {
+        $client = IdbBankClientBusiness::model($event['dbid']);
+        $parsed = IdbAccountId::parse($event[2]);
+        $data = $client->getRelatedPeoples($event['dbid'] . '.uid.' . $parsed['uid']);
+        if (!empty($data['QueryData']) && !empty($data['QueryData'][0])) {
+            $client->deleteRelationBusiness2People(
+                $event['dbid'] . '.uid.' . $parsed['uid'],
+                $data['QueryData'][0][0]
+            );
+        }
+        $client = IdbBankClientBusiness::model($event['dbid']);
+
+        $result = $client->get((int)$parsed['uid']);
+
+        if(!empty($result['QueryData'])) {
+            $metadata = json_decode($client->getAccountMetadata()['Metadata'], true);
+            if(!empty($metadata)) {
+                $data = Metadata::mapUuid($result['QueryData'][0], $metadata);
+                $client = IdbBankClientBusiness::model($event['dbid']);
+
+
+                if (!empty($data)) {
+                    $data = Metadata::getAllowedToPseudonymisation($data, $metadata);
+                    $client->putPseudonymisation($data);
+                }
+            }
+        }
+
+        $client->delete((int)$parsed['uid']);
+        $deleted = true;
+        if (!empty($client->findById((int)$parsed['uid'])['QueryData'])) {
+            $deleted = false;
+            for ($i = 0; $i < 10; $i++) {
+                $client->delete((int)$parsed['uid']);
+                if (empty($client->findById((int)$parsed['uid'])['QueryData'])) {
+                    $deleted = true;
+                    break;
+                }
+                sleep(1);
+            }
+        }
+
+        return $deleted;
     }
 
 

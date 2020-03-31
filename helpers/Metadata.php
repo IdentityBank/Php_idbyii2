@@ -47,7 +47,6 @@ use yii\helpers\ArrayHelper;
  */
 class Metadata
 {
-
     /**
      * Update data node of metadata by diff between two metadata.
      *
@@ -189,7 +188,6 @@ class Metadata
         }
     }
 
-
     /**
      * @param $uuid
      * @param $metadata
@@ -266,6 +264,10 @@ class Metadata
         return $gdpr;
     }
 
+    /**
+     * @param $metadata
+     * @return mixed|null
+     */
     public static function getPurposeLimitation($metadata)
     {
         foreach ($metadata['data'] as $data) {
@@ -281,6 +283,62 @@ class Metadata
         }
 
         return null;
+    }
+
+    /**
+     * @param $result
+     * @param $metadata
+     * @return array
+     */
+    public static function mapUuid($result, $metadata)
+    {
+        $mapped = [];
+        $orderedUiids = self::getOrderedUuids($metadata);
+        unset($result[0]);
+        foreach($result as $key => $row) {
+            $mapped[$orderedUiids[$key]] = $row;
+        }
+
+        return $mapped;
+    }
+
+    /**
+     * @param $metadata
+     * @param int $key
+     * @return array
+     */
+    private static function getOrderedUuids($metadata, &$key = 1)
+    {
+        $uuids = [];
+        foreach ($metadata['data'] as $data) {
+            if ($data['object_type'] == 'type') {
+                $uuids[$key] = $data['uuid'];
+                $key++;
+            } elseif ($data['object_type'] === 'set') {
+                if (!empty(self::getOrderedUuids($data))) {
+                    array_merge($uuids, self::getOrderedUuids($data, $key));
+                }
+            }
+        }
+
+        return $uuids;
+    }
+
+    /**
+     * @param array $data
+     * @param $metadata
+     * @return array
+     */
+    public static function getAllowedToPseudonymisation(array $data, $metadata)
+    {
+        foreach($data as $uuid => $value) {
+            $type = self::getType($uuid, $metadata);
+            if(empty($type['pseudonymisation']) || !boolval($type['pseudonymisation'])) {
+                unset($data[$uuid]);
+            }
+        }
+
+        return $data;
     }
 }
 

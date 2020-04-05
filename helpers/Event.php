@@ -57,6 +57,18 @@ use yii\web\NotFoundHttpException;
  */
 class Event
 {
+    public const ACTION_PSEUDONYMIZATION = 'pseudonymization';
+    public const ACTION_DELETE = 'delete';
+
+    private static $processed = [
+        'key' => '',
+        'dbid' => '',
+        'originalData' => [],
+        'data' => [],
+        'client' => null,
+        'action' => ''
+    ];
+
     /**
      * @param $client
      * @param int $lastId
@@ -140,6 +152,85 @@ class Event
     }
 
     /**
+     * @param $id
+     * @param array $data
+     * @param $metadata
+     * @param $client
+     * @throws Exception
+     */
+    public static function addEvent($id, array $data, $metadata, $client)
+    {
+        foreach($data as $key => $value) {
+            $type = Metadata::getType($key, $metadata);
+            if(empty($type['gdpr'])) {
+                continue;
+            }
+            $type = $type['gdpr'];
+
+            if (!empty($type['maximum'])) {
+                $maximumDate = new DateTime();
+                $maximumDate->add(new \DateInterval('PT' . (intval($type['maximum']) * 24) . 'H'));
+                $client->addAccountEvent(
+                    'uid.' . $id . '.uuid.' . $key,
+                    'AE',
+                    json_encode(['action' => $type['onExpiry']]),
+                    Localization::getDatabaseDateTime($maximumDate),
+                    [
+                        'retentionPeriod' => [
+                            'minimum' => $type['minimum'] ?? '0',
+                            'maximum' => $type['maximum'] ?? '0',
+                            'reviewCycle' => $type['reviewCycle'] ?? '0'
+                        ]
+                    ]
+                );
+            }
+            if (!empty($type['minimum'])) {
+                $minimumDate = new DateTime();
+                $minimumDate->add(new \DateInterval('PT' . (intval($type['minimum']) * 24) . 'H'));
+
+                $client->addAccountEvent(
+                    'uid.' . $id . '.uuid.' . $key,
+                    'AE',
+                    json_encode(['action' => 'allowDelete']),
+                    Localization::getDatabaseDateTime($minimumDate),
+                    [
+                        'retentionPeriod' => [
+                            'minimum' => $type['minimum'] ?? '0',
+                            'maximum' => $type['maximum'] ?? '0',
+                            'reviewCycle' => $type['reviewCycle'] ?? '0'
+                        ]
+                    ]
+                );
+            }
+            if (!empty($type['reviewCycle'])) {
+                $reviewDate = new DateTime();
+                $reviewDate->add(new \DateInterval('PT' . (intval($type['reviewCycle']) * 24) . 'H'));
+
+                $client->addAccountEvent(
+                    'uid.' . $id . '.uuid.' . $key,
+                    'AE',
+                    json_encode(
+                        [
+                            'action' => 'reviewCycle',
+                            'data' => [
+                                'message' => $type['explanation']
+                            ]
+                        ]
+                    ),
+                    Localization::getDatabaseDateTime($reviewDate),
+                    [
+                        'retentionPeriod' => [
+                            'minimum' => $type['minimum'] ?? '0',
+                            'maximum' => $type['maximum'] ?? '0',
+                            'reviewCycle' => $type['reviewCycle'] ?? '0'
+                        ]
+                    ]
+                );
+            }
+        }
+    }
+
+    /**
      * @throws NotFoundHttpException
      * @throws Exception
      */
@@ -155,7 +246,6 @@ class Event
                 $dbid = $database->business_db_id;
                 $client = IdbBankClientBusiness::model($dbid);
                 $eventsOffset = 0;
-                var_dump($dbid);
                 while ($events = $client->setPage($eventsOffset)->setPageSize($pageSize)->findCountAllEventsToCache($database->idb_data_id)['QueryData']) {
                     foreach ($events as $event) {
                         $event['dbid'] = $dbid;
@@ -178,6 +268,7 @@ class Event
     public static function hourlyEvents()
     {
         $file = fopen(TempFile::getTempFileName('events', true), 'r+') or die('Hourly events doesn\'t exist');
+        $action = '';
         while (!feof($file)) {
             $eventRaw = fgets($file);
             $event = json_decode($eventRaw, true);
@@ -188,8 +279,8 @@ class Event
                 $nextHour->add(new DateInterval('P6D'));
                 if ($nextHour->diff($eventTime)->format('%R') === "-") {
                     $event[7] = json_decode($event[7], true);
-
-                    $method = $event[7]['action'] . 'Event';
+                    $action = $event[7]['action'];
+                    $method = $action . 'Event';
 
                     if (is_callable('self::' . $method) && method_exists(self::class, $method)) {
                         if (call_user_func(self::class . "::$method", $event)) {
@@ -210,6 +301,87 @@ class Event
         }
 
         fclose($file);
+
+        if($action !== '') {
+            self::deleteOrPseudonymizeProcessed($action);
+        }
+    }
+
+
+    /**
+     * @param $event
+     * @param $action
+     * @return bool
+     * @throws Exception
+     */
+    public static function proceedDeleting($event, $action)
+    {
+        $eventAction = $event[7]['action'];
+        $parsedFromEvent = IdbAccountId::parse($event[2]);
+        if(
+            $event['dbid'] . '.uid.' . $parsedFromEvent['uid'] !== self::$processed['key']
+            || self::$processed['action'] !== $eventAction
+        ) {
+            try {
+                $deleted = true;
+                if (self::$processed['key'] !== '') {
+                    $deleted = self::deleteOrPseudonymizeProcessed($action);
+                }
+
+                $client = IdbBankClientBusiness::model($event['dbid']);
+                $result = $client->get((int)$parsedFromEvent['uid']);
+                $metadata = json_decode($client->getAccountMetadata()['Metadata'], true);
+                $originalData = $data = Metadata::mapUuid($result['QueryData'][0], $metadata);
+                $data[$parsedFromEvent['uuid']] = "";
+
+                self::$processed = [
+                    'key' => $event['dbid'] . '.uid.' . $parsedFromEvent['uid'],
+                    'dbid' => $event['dbid'],
+                    'originalData' => $originalData,
+                    'data' => $data,
+                    'pseudoData' => [
+                        $parsedFromEvent['uuid'] => $originalData[$parsedFromEvent['uuid']],
+                    ],
+                    'action' => $eventAction,
+                    'client' => IdbBankClientBusiness::model($event['dbid']),
+                ];
+            } catch(\Exception $e) {
+                var_dump($e->getMessage());
+                var_dump($e->getLine());
+            }
+
+            return $deleted;
+        } else {
+            self::$processed['data'][$parsedFromEvent['uuid']] = "";
+            self::$processed['pseudoData'][$parsedFromEvent['uuid']] = self::$processed['originalData'][$parsedFromEvent['uuid']];
+
+            return true;
+        }
+    }
+
+    /**
+     * @param $action
+     * @return bool
+     * @throws Exception
+     */
+    public static function deleteOrPseudonymizeProcessed($action)
+    {
+        $deleted = true;
+        if(self::checkIfDeleteProcessed()) {
+            $deleted = self::deleteWholeRowByProcessed();
+        } else {
+            $parsedFromProcessed = IdbAccountId::parse(self::$processed['key']);
+            self::$processed['client']->update((int)$parsedFromProcessed['uid'], self::$processed['data']);
+        }
+
+        if($action === self::ACTION_PSEUDONYMIZATION) {
+            $metadata = json_decode(self::$processed['client']->getAccountMetadata()['Metadata'], true);
+            $data = Metadata::getAllowedToPseudonymisation(self::$processed['pseudoData'], $metadata);
+            $client = IdbBankClientBusiness::model(self::$processed['dbid']);
+            $client->putPseudonymisation($data);
+        }
+
+        return $deleted;
     }
 
     /**
@@ -219,48 +391,7 @@ class Event
      */
     public static function pseudonymizationEvent($event)
     {
-        $client = IdbBankClientBusiness::model($event['dbid']);
-        $parsed = IdbAccountId::parse($event[2]);
-        $data = $client->getRelatedPeoples($event['dbid'] . '.uid.' . $parsed['uid']);
-        if (!empty($data['QueryData']) && !empty($data['QueryData'][0])) {
-            $client->deleteRelationBusiness2People(
-                $event['dbid'] . '.uid.' . $parsed['uid'],
-                $data['QueryData'][0][0]
-            );
-        }
-        $client = IdbBankClientBusiness::model($event['dbid']);
-
-        $result = $client->get((int)$parsed['uid']);
-
-        if(!empty($result['QueryData'])) {
-            $metadata = json_decode($client->getAccountMetadata()['Metadata'], true);
-            if(!empty($metadata)) {
-                $data = Metadata::mapUuid($result['QueryData'][0], $metadata);
-                $client = IdbBankClientBusiness::model($event['dbid']);
-
-
-                if (!empty($data)) {
-                    $data = Metadata::getAllowedToPseudonymisation($data, $metadata);
-                    $client->putPseudonymisation($data);
-                }
-            }
-        }
-
-        $client->delete((int)$parsed['uid']);
-        $deleted = true;
-        if (!empty($client->findById((int)$parsed['uid'])['QueryData'])) {
-            $deleted = false;
-            for ($i = 0; $i < 10; $i++) {
-                $client->delete((int)$parsed['uid']);
-                if (empty($client->findById((int)$parsed['uid'])['QueryData'])) {
-                    $deleted = true;
-                    break;
-                }
-                sleep(1);
-            }
-        }
-
-        return $deleted;
+        return self::proceedDeleting($event, self::ACTION_PSEUDONYMIZATION);
     }
 
 
@@ -281,31 +412,7 @@ class Event
      */
     public static function deleteEvent($event)
     {
-        $client = IdbBankClientBusiness::model($event['dbid']);
-        $parsed = IdbAccountId::parse($event[2]);
-        $data = $client->getRelatedPeoples($event['dbid'] . '.uid.' . $parsed['uid']);
-        if (!empty($data['QueryData']) && !empty($data['QueryData'][0])) {
-            $client->deleteRelationBusiness2People(
-                $event['dbid'] . '.uid.' . $parsed['uid'],
-                $data['QueryData'][0][0]
-            );
-        }
-        $client = IdbBankClientBusiness::model($event['dbid']);
-        $client->delete((int)$parsed['uid']);
-        $deleted = true;
-        if (!empty($client->findById((int)$parsed['uid'])['QueryData'])) {
-            $deleted = false;
-            for ($i = 0; $i < 10; $i++) {
-                $client->delete((int)$parsed['uid']);
-                if (empty($client->findById((int)$parsed['uid'])['QueryData'])) {
-                    $deleted = true;
-                    break;
-                }
-                sleep(1);
-            }
-        }
-
-        return $deleted;
+        return self::proceedDeleting($event, self::ACTION_DELETE);
     }
 
 
@@ -333,6 +440,59 @@ class Event
             );
 
             return is_bool($request) && $request;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return bool
+     * @throws Exception
+     */
+    private static function deleteWholeRowByProcessed()
+    {
+        $client = clone self::$processed['client'];
+        $parsed = IdbAccountId::parse(self::$processed['key']);
+        $data = $client->getRelatedPeoples(self::$processed['dbid'] . '.uid.' . $parsed['uid']);
+        if (!empty($data['QueryData']) && !empty($data['QueryData'][0])) {
+            $client->deleteRelationBusiness2People(
+                self::$processed['dbid'] . '.uid.' . $parsed['uid'],
+                $data['QueryData'][0][0]
+            );
+        }
+
+        self::$processed['client']->delete((int)$parsed['uid']);
+        $deleted = true;
+
+        if (!empty(self::$processed['client']->findById((int)$parsed['uid'])['QueryData'])) {
+
+            $deleted = false;
+            for ($i = 0; $i < 10; $i++) {
+                self::$processed['client']->delete((int)$parsed['uid']);
+                if (empty(self::$processed['client']->findById((int)$parsed['uid'])['QueryData'])) {
+                    $deleted = true;
+                    break;
+                }
+                sleep(1);
+            }
+        }
+
+        if(!$deleted) {
+            Yii::error('Can\'t delete data' . json_encode(self::$processed['data']));
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * @return bool
+     */
+    private static function checkIfDeleteProcessed()
+    {
+        foreach(self::$processed['data'] as $data) {
+            if(trim($data) !== "") {
+                return false;
+            }
         }
 
         return true;

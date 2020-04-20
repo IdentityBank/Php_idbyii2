@@ -34,12 +34,11 @@ namespace idbyii2\helpers;
 # Use(s)                                                                       #
 ################################################################################
 
+use Exception;
+use idbyii2\components\Messenger;
 use idbyii2\models\db\BusinessSignup;
 use idbyii2\services\Invoice;
-use Exception;
 use idbyii2\services\Payment;
-use Throwable;
-use yii\db\StaleObjectException;
 
 ################################################################################
 # Class(es)                                                                    #
@@ -56,18 +55,23 @@ class IdbCron
     /**
      * @param $args
      *
-     * @throws Throwable
-     * @throws StaleObjectException
+     * @throws \Throwable
      */
     public static function daily($args)
     {
-        Credits::cacheCosts();
-        Account::deleteOutdatedPeople();
-        Invoice::logOutDatedInvoices();
-        Account::deleteBusinessAccounts();
-        BusinessSignup::deleteOutdated();
-        Account::disconnectOutdated();
-        Event::cacheDailyEvents();
+        try {
+            Credits::cacheCosts();
+            Account::deleteOutdatedPeople();
+            Invoice::logOutDatedInvoices();
+            Account::deleteBusinessAccounts();
+            BusinessSignup::deleteOutdated();
+            Account::disconnectOutdated();
+            Event::cacheDailyEvents();
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing daily cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing daily cron. - " . $e->getMessage());
+        }
     }
 
     /**
@@ -77,16 +81,33 @@ class IdbCron
      */
     public static function dailyMorning($args)
     {
-        Payment::rechargeOrNotifyOutdated();
+        try {
+            if (IdbYii2Config::get()->isCronPaymentEnabled()) {
+                Payment::rechargeOrNotifyOutdated();
+            } else {
+                self::echoLog("Cron payment are disabled!");
+            }
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing dailyMorning cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing dailyMorning cron. - " . $e->getMessage());
+        }
     }
 
     /**
      * @param $args
+     *
      * @throws \yii\web\NotFoundHttpException
      */
     public static function hour($args)
     {
-        Event::hourlyEvents();
+        try {
+            Event::hourlyEvents();
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing hour cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing hour cron. - " . $e->getMessage());
+        }
     }
 
     /**
@@ -94,6 +115,12 @@ class IdbCron
      */
     public static function halfHour($args)
     {
+        try {
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing halfHour cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing halfHour cron. - " . $e->getMessage());
+        }
     }
 
     /**
@@ -101,6 +128,12 @@ class IdbCron
      */
     public static function quarterHour($args)
     {
+        try {
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing quarterHour cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing quarterHour cron. - " . $e->getMessage());
+        }
     }
 
     /**
@@ -108,6 +141,40 @@ class IdbCron
      */
     public static function minute5($args)
     {
+        try {
+        } catch (Exception $e) {
+            self::reportError(" [Ex] ERROR executing minute5 cron. - " . $e->getMessage());
+        } catch (Error $e) {
+            self::reportError(" [E] ERROR executing minute5 cron. - " . $e->getMessage());
+        }
+    }
+
+    private static function reportError($errorMessage)
+    {
+        self::echoLog($errorMessage);
+        $messenger = Messenger::get();
+
+        $messenger->slack(
+            'server_cron',
+            Translate::_(
+                'idbyii2',
+                "Error executing cron task for server {server}: {message}",
+                [
+                    'server' => IdbYii2Config::get()->serverName(),
+                    'message' => $errorMessage
+                ]
+            )
+        );
+    }
+
+    public static function echoLog($msg)
+    {
+        try {
+            $timestamp = Localization::getDateTimeLogString();
+            echo("[$timestamp] - $msg" . PHP_EOL);
+        } catch (Exception $e) {
+            Yii2::error($e->getMessage());
+        }
     }
 }
 

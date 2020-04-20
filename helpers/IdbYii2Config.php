@@ -677,6 +677,14 @@ class IdbYii2Config
         // * userId_accountNumber_sha256
         return $this->getValue(null, 'loginVerifyTemplate', '{timestamp_sha256}{userId}{accountNumber}{timestamp_md5}');
     }
+
+    /**
+     * @return bool
+     */
+    function isCronPaymentEnabled()
+    {
+        return ($this->getValue('Payment', 'cronPaymentEnabled') === 'IDB_ALLOW_CRON_PAYMENT');
+    }
 }
 
 ################################################################################

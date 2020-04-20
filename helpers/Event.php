@@ -34,14 +34,12 @@ namespace idbyii2\helpers;
 # Use(s)                                                                       #
 ################################################################################
 
-use Codeception\Step\Meta;
 use DateInterval;
 use DateTime;
 use Exception;
 use idbyii2\components\PortalApi;
 use idbyii2\models\db\BusinessDatabaseData;
 use idbyii2\models\idb\IdbBankClientBusiness;
-use idbyii2\models\idb\IdbBankClientPeople;
 use Yii;
 use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
@@ -316,47 +314,49 @@ class Event
      */
     public static function proceedDeleting($event, $action)
     {
-        $eventAction = $event[7]['action'];
-        $parsedFromEvent = IdbAccountId::parse($event[2]);
-        if(
-            $event['dbid'] . '.uid.' . $parsedFromEvent['uid'] !== self::$processed['key']
-            || self::$processed['action'] !== $eventAction
-        ) {
-            try {
-                $deleted = true;
-                if (self::$processed['key'] !== '') {
-                    $deleted = self::deleteOrPseudonymizeProcessed($action);
+        if (!empty($event[7]['action'])) {
+            $eventAction = $event[7]['action'];
+            $parsedFromEvent = IdbAccountId::parse($event[2]);
+            if (
+                $event['dbid'] . '.uid.' . $parsedFromEvent['uid'] !== self::$processed['key']
+                || self::$processed['action'] !== $eventAction
+            ) {
+                try {
+                    $deleted = true;
+                    if (self::$processed['key'] !== '') {
+                        $deleted = self::deleteOrPseudonymizeProcessed($action);
+                    }
+
+                    $client = IdbBankClientBusiness::model($event['dbid']);
+                    $result = $client->get((int)$parsedFromEvent['uid']);
+                    $metadata = json_decode($client->getAccountMetadata()['Metadata'], true);
+                    $originalData = $data = Metadata::mapUuid($result['QueryData'][0], $metadata);
+                    $data[$parsedFromEvent['uuid']] = "";
+
+                    self::$processed = [
+                        'key' => $event['dbid'] . '.uid.' . $parsedFromEvent['uid'],
+                        'dbid' => $event['dbid'],
+                        'originalData' => $originalData,
+                        'data' => $data,
+                        'pseudoData' => [
+                            $parsedFromEvent['uuid'] => $originalData[$parsedFromEvent['uuid']],
+                        ],
+                        'action' => $eventAction,
+                        'client' => IdbBankClientBusiness::model($event['dbid']),
+                    ];
+                } catch (\Exception $e) {
+                    var_dump($e->getMessage());
+                    var_dump($e->getLine());
                 }
 
-                $client = IdbBankClientBusiness::model($event['dbid']);
-                $result = $client->get((int)$parsedFromEvent['uid']);
-                $metadata = json_decode($client->getAccountMetadata()['Metadata'], true);
-                $originalData = $data = Metadata::mapUuid($result['QueryData'][0], $metadata);
-                $data[$parsedFromEvent['uuid']] = "";
-
-                self::$processed = [
-                    'key' => $event['dbid'] . '.uid.' . $parsedFromEvent['uid'],
-                    'dbid' => $event['dbid'],
-                    'originalData' => $originalData,
-                    'data' => $data,
-                    'pseudoData' => [
-                        $parsedFromEvent['uuid'] => $originalData[$parsedFromEvent['uuid']],
-                    ],
-                    'action' => $eventAction,
-                    'client' => IdbBankClientBusiness::model($event['dbid']),
-                ];
-            } catch(\Exception $e) {
-                var_dump($e->getMessage());
-                var_dump($e->getLine());
+                return $deleted;
+            } else {
+                self::$processed['data'][$parsedFromEvent['uuid']] = "";
+                self::$processed['pseudoData'][$parsedFromEvent['uuid']] = self::$processed['originalData'][$parsedFromEvent['uuid']];
             }
-
-            return $deleted;
-        } else {
-            self::$processed['data'][$parsedFromEvent['uuid']] = "";
-            self::$processed['pseudoData'][$parsedFromEvent['uuid']] = self::$processed['originalData'][$parsedFromEvent['uuid']];
-
-            return true;
         }
+
+        return true;
     }
 
     /**

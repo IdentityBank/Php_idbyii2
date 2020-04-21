@@ -237,7 +237,7 @@ class Event
         $pageSize = 25;
         $databaseOffset = 0;
         TempFile::writeTempFile('', 'events', true);
-        $file = fopen(TempFile::getTempFileName('events', true), 'w');
+        $file = fopen(TempFile::getTempFileName('events', true), 'w') or die('Cannot access events file !!!');
         while ($databases = BusinessDatabaseData::find()->offset($databaseOffset * $pageSize)->limit($pageSize)->all()) {
             /** @var BusinessDatabaseData $database */
             foreach ($databases as $database) {
@@ -451,6 +451,9 @@ class Event
      */
     private static function deleteWholeRowByProcessed()
     {
+        if (empty(self::$processed['client'])) {
+            return true;
+        }
         $client = clone self::$processed['client'];
         $parsed = IdbAccountId::parse(self::$processed['key']);
         $data = $client->getRelatedPeoples(self::$processed['dbid'] . '.uid.' . $parsed['uid']);
